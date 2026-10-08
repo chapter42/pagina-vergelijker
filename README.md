@@ -57,3 +57,6 @@ data = vg.scrape(url, FIRECRAWL_KEY)
 p = vg.uit_firecrawl("A", url, data)
 paren = vg.vergelijk([p1, p2], vg.gemini_embedder(GEMINI_KEY))
 ```
+
+## Licentie
+MIT, zie [LICENSE](LICENSE).
