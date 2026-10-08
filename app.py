@@ -20,9 +20,9 @@ BLOKKEN = {"product": "Productset", "tekst": "Tekst (betekenis)",
 
 
 @st.cache_data(ttl=3600, show_spinner=False, max_entries=200)
-def scrape_cached(url: str, _key: str) -> dict:
+def scrape_cached(url: str, land: str, _key: str) -> dict:
     # _key hoort niet bij de cachesleutel en wordt nergens opgeslagen
-    return vg.scrape(url, _key)
+    return vg.scrape(url, _key, land)
 
 
 @st.cache_data(ttl=3600, show_spinner=False, max_entries=200)
@@ -53,6 +53,8 @@ with st.sidebar:
                 "[Gemini-key halen](https://aistudio.google.com/apikey)")
 
     with st.expander("Geavanceerd"):
+        land = st.text_input("Ophalen vanuit land", "NL", max_chars=2,
+                             help="Landcode voor Firecrawl. Sites als bol blokkeren buitenlandse bezoekers.")
         product_re = st.text_input(
             "Regex voor product-ID's in links", vg.BOL_PRODUCT_RE,
             help="De eerste groep is het ID. Standaard: bol-productpagina's (/p/<naam>/<id>).")
@@ -97,7 +99,7 @@ if st.button("Vergelijk", type="primary", disabled=aantal < 2):
             with st.status("Bezig met vergelijken…", expanded=True) as status:
                 for n, url in enumerate(urls, 1):
                     st.write(f"Ophalen: {url}")
-                    data = scrape_cached(url, fc_key)
+                    data = scrape_cached(url, land, fc_key)
                     paginas.append(vg.uit_firecrawl(f"P{n} · {kort(url)}", url, data, product_re))
                 for up in uploads or []:
                     n = len(paginas) + 1

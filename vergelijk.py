@@ -24,7 +24,10 @@ GEWICHTEN = {"product": 0.4, "tekst": 0.3, "intentie": 0.2, "letterlijk": 0.1}
 DREMPELS = (0.65, 0.85)
 MAX_PAGINAS = 5
 MAX_ALINEAS = 150
-MIN_WOORDEN = 8
+MIN_WOORDEN = 12
+# Resten van productkaarten: prijzen, levertijd, USP-vinkjes, ingekorte beschrijvingen
+KAARTRUIS = re.compile(r"\beuro\b|€\s?\d|\d+,(-|\d\d)(?!\d)|op voorraad|besteld|bezorgd|levertijd|"
+                       r"✓|✔|(\.\.\.|…)\s*$|sortering", re.I)
 # Gemini-cosines liggen ook voor ongerelateerde Nederlandse tekst rond 0,70.
 # We schalen [EMB_VLOER, 1] naar [0, 1], zodat 0% echt "niets gemeen" betekent.
 EMB_VLOER = 0.70
@@ -61,26 +64,27 @@ class Pagina:
 
 # ---------------------------------------------------------------- ophalen
 
-def scrape(url: str, key: str, timeout: int = 120) -> dict:
-    """Haal een pagina op via Firecrawl. Geeft {markdown, html, rawHtml, metadata}."""
+def scrape(url: str, key: str, land: str = "NL", timeout: int = 120) -> dict:
+    """Haal een pagina op via Firecrawl. Geeft {markdown, html, rawHtml, metadata}.
+
+    Ophalen vanuit het land van de site helpt tegen botbescherming (bol blokkeert
+    buitenlandse IP's). Lukt het niet, dan nog één poging met de stealth-proxy.
+    """
     if not key:
         raise Fout("Vul eerst je Firecrawl API-key in.")
-    try:
-        r = requests.post(
-            FIRECRAWL_URL,
-            headers={"Authorization": f"Bearer {key}"},
-            json={"url": url, "formats": ["markdown", "html", "rawHtml"],
-                  "onlyMainContent": True, "timeout": timeout * 1000},
-            timeout=timeout + 15,
-        )
-    except requests.RequestException as e:
-        raise Fout(f"Firecrawl is niet bereikbaar ({e.__class__.__name__}).") from e
+    for proxy in ("auto", "stealth"):
+        r = _firecrawl(url, key, land, proxy, timeout)
+        if r.status_code < 500:
+            break
     if r.status_code == 401:
         raise Fout("Je Firecrawl API-key klopt niet.")
     if r.status_code == 402:
         raise Fout("Je Firecrawl-tegoed is op.")
     if r.status_code == 429:
         raise Fout("Firecrawl: te veel verzoeken tegelijk. Probeer het over een minuut opnieuw.")
+    if r.status_code >= 500 and "ENGINES_FAILED" in r.text:
+        raise Fout(f"De site blokkeert Firecrawl voor {url}. Probeer het later nog eens, "
+                   "of sla de pagina op in je browser en upload het HTML-bestand.")
     if r.status_code >= 400:
         raise Fout(f"Firecrawl gaf fout {r.status_code} voor {url}: {r.text[:200]}")
     data = (r.json() or {}).get("data") or {}
@@ -92,6 +96,19 @@ def scrape(url: str, key: str, timeout: int = 120) -> dict:
         raise Fout(f"Geen bruikbare inhoud voor {url}; waarschijnlijk een botmuur. "
                    "Sla de pagina op in je browser en upload het HTML-bestand.")
     return data
+
+
+def _firecrawl(url: str, key: str, land: str, proxy: str, timeout: int) -> requests.Response:
+    body = {"url": url, "formats": ["markdown", "html", "rawHtml"], "onlyMainContent": True,
+            "proxy": proxy, "maxAge": 0, "timeout": timeout * 1000}
+    if land:
+        body["location"] = {"country": land.upper(),
+                            **({"languages": ["nl-NL"]} if land.upper() in ("NL", "BE") else {})}
+    try:
+        return requests.post(FIRECRAWL_URL, headers={"Authorization": f"Bearer {key}"},
+                             json=body, timeout=timeout + 15)
+    except requests.RequestException as e:
+        raise Fout(f"Firecrawl is niet bereikbaar ({e.__class__.__name__}).") from e
 
 
 # ---------------------------------------------------------------- blokken
@@ -118,19 +135,19 @@ def _md_alineas(md: str, product_re: str) -> list[str]:
     for blok in re.split(r"\n\s*\n", md):
         regels = []
         for regel in blok.splitlines():
+            regel = re.sub(r"!\[[^\]]*\]\([^)]*\)", "", regel).replace("\\", " ")  # afbeeldingen
             links = re.findall(r"\[([^\]]*)\]\(([^)]*)\)", regel)
             if any(pat.search(u) for _, u in links):
                 continue  # productkaart
-            regel = re.sub(r"!\[[^\]]*\]\([^)]*\)", "", regel)          # afbeeldingen
             zonder = re.sub(r"\[([^\]]*)\]\([^)]*\)", "", regel)
             if links and len(_schoon(zonder)) < 0.5 * len(_schoon(regel)):
                 continue  # vooral links: navigatie
             regel = re.sub(r"\[([^\]]*)\]\([^)]*\)", r"\1", regel)
             regel = re.sub(r"^[#>*\-\s\d.|]+", "", regel).replace("**", "").replace("|", " ")
-            if regel.strip():
+            if regel.strip() and not KAARTRUIS.search(regel):
                 regels.append(regel)
         tekst = _schoon(" ".join(regels))
-        if len(tekst.split()) >= MIN_WOORDEN and "€" not in tekst[:40]:
+        if len(tekst.split()) >= MIN_WOORDEN and re.search(r"[.?!:]", tekst):  # zinnen, geen specs
             uit.append(tekst)
     return _uniek(uit)[:MAX_ALINEAS]
 
@@ -148,7 +165,7 @@ def _html_alineas(soup: BeautifulSoup, product_re: str) -> list[str]:
         if el.find(["p", "li", "div"]):
             continue  # alleen bladen, anders dubbel
         tekst = _schoon(el.get_text(" "))
-        if len(tekst.split()) >= MIN_WOORDEN:
+        if len(tekst.split()) >= MIN_WOORDEN and not KAARTRUIS.search(tekst):
             uit.append(tekst)
     return _uniek(uit)[:MAX_ALINEAS]
 

@@ -80,3 +80,15 @@ def test_url_verschil_en_maximum():
     assert r["alleen_in_a"] == ["75727"] and r["alleen_in_b"] == []
     with pytest.raises(vg.Fout):
         vg.vergelijk([a] * 6, fake_embed)
+
+
+def test_resten_van_productkaarten_eruit():
+    md = "\n\n".join([
+        TEKST_A,
+        "De prijs van dit product is '239' euro en '99' cent239,99 en nog wat extra woorden erbij",
+        "Op voorraad. Voor 23:00 uur besteld, morgen in huis en gratis retourneren binnen dertig dagen",
+        "De Samsung M74H MiniLED TV combineert haarscherpe 4K-beeldkwaliteit met slimme AI-functies en een stijlvol...",
+        "Hz Neo QLED Tizen Geen app voor Spotify NPO Start Disney+ NLZIET en nog meer apps hier",
+        "[![logo](https://x/img.png)\\\\ Tot 300,- cashback op Sony Bravia TV's](https://www.bol.com/nl/nl/ra/actie/1/)",
+    ])
+    assert vg._md_alineas(md, vg.BOL_PRODUCT_RE) == [TEKST_A]
