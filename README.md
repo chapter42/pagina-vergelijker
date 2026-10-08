@@ -27,6 +27,8 @@ Elke gebruiker vult zijn eigen keys in de sidebar in. Ze blijven alleen in de br
 - **Firecrawl** (ophalen van pagina's): https://www.firecrawl.dev/app/api-keys. Elke pagina kost één scrape; een tweede vergelijking binnen een uur komt uit de cache.
 - **Google Gemini** (embeddings, model `gemini-embedding-001`): https://aistudio.google.com/apikey. Er is een gratis tier.
 
+**Lokaal zonder invullen:** zet je keys in `.streamlit/secrets.toml` (voorbeeld: `.streamlit/secrets.toml.example`; het bestand staat in `.gitignore`). De velden tonen dan "✓ uit secrets.toml"; een ingevulde key gaat altijd voor. Zet je dezelfde secrets op Streamlit Cloud, dan gebruikt iedereen die de app opent jouw keys.
+
 Wordt een pagina geblokkeerd door botbescherming? Sla de pagina op in je browser (Cmd/Ctrl+S) en upload het HTML-bestand in de app.
 
 ## Lokaal draaien

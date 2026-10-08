@@ -30,6 +30,14 @@ def embed_cached(teksten: tuple[str, ...], _key: str):
     return vg.gemini_embedder(_key)(list(teksten))
 
 
+def secret(naam: str) -> str:
+    """Key uit .streamlit/secrets.toml, of leeg als er geen secrets-bestand is."""
+    try:
+        return str(st.secrets.get(naam, "") or "")
+    except Exception:  # geen secrets.toml
+        return ""
+
+
 def kort(url: str, n: int = 45) -> str:
     p = urlparse(url)
     delen = [d for d in p.path.split("/") if d]
@@ -45,10 +53,14 @@ def pct(x) -> str:
 with st.sidebar:
     st.header("API-keys")
     st.caption("Je keys blijven alleen in deze browsersessie. Ze worden niet opgeslagen of gelogd.")
+    # Staat een key in secrets.toml, dan is invullen niet nodig; een ingevulde key gaat voor.
+    fc_secret, gm_secret = secret("FIRECRAWL_API_KEY"), secret("GEMINI_API_KEY")
     fc_key = st.text_input("Firecrawl API-key", type="password", key="fc_key",
-                           help="Haal een key op firecrawl.dev → Dashboard → API Keys.")
+                           placeholder="✓ uit secrets.toml" if fc_secret else "",
+                           help="Haal een key op firecrawl.dev → Dashboard → API Keys.") or fc_secret
     gm_key = st.text_input("Google Gemini API-key", type="password", key="gm_key",
-                           help="Haal een gratis key op aistudio.google.com → Get API key.")
+                           placeholder="✓ uit secrets.toml" if gm_secret else "",
+                           help="Haal een gratis key op aistudio.google.com → Get API key.") or gm_secret
     st.markdown("[Firecrawl-key halen](https://www.firecrawl.dev/app/api-keys) · "
                 "[Gemini-key halen](https://aistudio.google.com/apikey)")
 
