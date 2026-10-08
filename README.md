@@ -23,13 +23,19 @@ Hoeveel lijken 2 tot 5 webpagina's echt op elkaar? Deze Streamlit-app vergelijkt
 > Gemini-cosines liggen ook voor ongerelateerde Nederlandse tekst rond 0,70. De app schaalt [0,70–1] naar [0–100%], zodat 0% echt "niets gemeen" betekent (`EMB_VLOER` in `vergelijk.py`).
 
 ## Keys
-Elke gebruiker vult zijn eigen keys in de sidebar in. Ze blijven alleen in de browsersessie en worden niet opgeslagen of gelogd.
+Elke gebruiker vult zijn eigen keys in de sidebar in en betaalt zelf zijn gebruik. Zie [Privacy](#privacy-wat-gebeurt-er-met-je-gegevens) voor wat er met de keys gebeurt.
 - **Firecrawl** (ophalen van pagina's): https://www.firecrawl.dev/app/api-keys. Elke pagina kost één scrape; een tweede vergelijking binnen een uur komt uit de cache.
 - **Google Gemini** (embeddings, model `gemini-embedding-001`): https://aistudio.google.com/apikey. Er is een gratis tier.
 
 **Lokaal zonder invullen:** zet je keys in `.streamlit/secrets.toml` (voorbeeld: `.streamlit/secrets.toml.example`; het bestand staat in `.gitignore`). De velden tonen dan "✓ uit secrets.toml"; een ingevulde key gaat altijd voor. Zet je dezelfde secrets op Streamlit Cloud, dan gebruikt iedereen die de app opent jouw keys.
 
 Wordt een pagina geblokkeerd door botbescherming? Sla de pagina op in je browser (Cmd/Ctrl+S) en upload het HTML-bestand in de app.
+
+## Privacy: wat gebeurt er met je gegevens
+- **Je API-keys** gaan naar de server waarop de app draait (bij de online versie: Streamlit Community Cloud). Ze staan alleen in het geheugen van jouw sessie en verdwijnen als je de tab sluit. De app slaat ze niet op, logt ze niet en gebruikt ze niet als cachesleutel. Je vertrouwt wel de beheerder van de app en Streamlit, zoals bij elke webtool waarin je een key plakt. Wil je dat niet, draai de app dan lokaal; de code is openbaar.
+- **De URL's en paginatekst** gaan naar Firecrawl (ophalen) en naar Google Gemini (embeddings). Daar gelden hun voorwaarden.
+- **De cache wordt gedeeld.** Opgehaalde pagina's en embeddings blijven een uur bewaard, voor alle gebruikers samen. Vergelijken twee mensen dezelfde URL, dan kost dat de tweede geen Firecrawl-credits. Er staan geen keys in de cache. Een ander kan alleen aan de snelheid merken dat een URL net is opgehaald.
+- **Resultaten en geüploade HTML** blijven in jouw sessie en worden niet opgeslagen. Andere gebruikers zien ze niet.
 
 ## Lokaal draaien
 ```bash
@@ -47,7 +53,8 @@ Tests (zonder API-calls):
 ## Online zetten (Streamlit Community Cloud)
 1. Push deze repo naar GitHub.
 2. Ga naar https://share.streamlit.io → *Create app* → kies de repo, branch `main` en bestand `app.py`.
-3. Je hoeft geen secrets in te stellen; gebruikers vullen hun eigen keys in.
+3. Stel géén secrets in: dan vullen gebruikers hun eigen keys in en betalen ze hun eigen gebruik.
+4. Streamlit voegt een alleen-lezen deploy key toe aan de repo (*Settings → Deploy keys*). Die is nodig om bij elke push naar `main` opnieuw te deployen. Verwijder hem als je de app op Streamlit weghaalt.
 
 ## Als script
 `vergelijk.py` bevat geen Streamlit-code:

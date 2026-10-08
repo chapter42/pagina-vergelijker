@@ -52,7 +52,17 @@ def pct(x) -> str:
 # ---------------------------------------------------------------- sidebar
 with st.sidebar:
     st.header("API-keys")
-    st.caption("Je keys blijven alleen in deze browsersessie. Ze worden niet opgeslagen of gelogd.")
+    st.caption("Je keys staan alleen in het geheugen van jouw sessie en verdwijnen als je de tab sluit. "
+               "Ze worden niet opgeslagen of gelogd.")
+    with st.expander("Wat gebeurt er met je gegevens?"):
+        st.markdown(
+            "- **Keys:** gaan naar de server van deze app (Streamlit Cloud) en worden alleen gebruikt "
+            "voor jouw aanvragen bij Firecrawl en Gemini. Niet opgeslagen, niet gelogd, niet in de cache. "
+            "Liever niet? [Draai de app lokaal](https://github.com/chapter42/pagina-vergelijker).\n"
+            "- **URL's en paginatekst:** gaan naar Firecrawl (ophalen) en Google Gemini (embeddings).\n"
+            "- **Gedeelde cache:** opgehaalde pagina's en embeddings blijven een uur bewaard, voor alle "
+            "gebruikers samen. Zonder keys. Dezelfde URL nog eens ophalen kost dan geen credits.\n"
+            "- **Resultaten en uploads:** alleen in jouw sessie; andere gebruikers zien ze niet.")
     # Staat een key in secrets.toml, dan is invullen niet nodig; een ingevulde key gaat voor.
     fc_secret, gm_secret = secret("FIRECRAWL_API_KEY"), secret("GEMINI_API_KEY")
     fc_key = st.text_input("Firecrawl API-key", type="password", key="fc_key",
